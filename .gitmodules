@@ -1,0 +1,3 @@
+[submodule "dotnet-native"]
+	path = dotnet-native
+	url = https://github.com/bozidarsk/dotnet-native
