@@ -1,0 +1,88 @@
+<Project DefaultTargets="Build" InitialTargets="MakeDirectories">
+
+  <Import Project="dotnet-native/Directory.Build.props"/>
+
+  <PropertyGroup>
+    <RunCommand>dotnet</RunCommand>
+    <RunArguments>msbuild -t:Run</RunArguments>
+  </PropertyGroup>
+
+  <Target Name="Build" Inputs="@(Compile);@(Assemble);$(DotnetNativeBinPath)/dotnet.dll;$(DotnetNativeBinPath)/libdotnet.a" Outputs="bin/kernel.bin">
+    <MSBuild Projects="dotnet-native/dotnet-native.csproj"/>
+    <Message Text="Building kernel..." Importance="High"/>
+    <Csc 
+      Sources="@(Compile)"
+      TargetType="library"
+      OutputAssembly="bin/managed.dll"
+      References="$(DotnetNativeBinPath)/dotnet.dll"
+
+      DefineConstants=""
+      DisabledWarnings=""
+      Platform="$(Platform)"
+
+      AllowUnsafeBlocks="true"
+      CheckForOverflowUnderflow="false"
+      DebugType="portable"
+      Deterministic="true"
+      NoConfig="true"
+      NoLogo="true"
+      NoStandardLib="true"
+      NoWin32Manifest="true"
+      Nullable="enable"
+      Optimize="true"
+    />
+    <Message Text="Kernel -> bin/managed.dll" Importance="High"/>
+    <Exec Command="$(DotnetPath)/tools/ilc bin/managed.dll -o bin/managed.o --map bin/managed.xml --reference $(DotnetNativeBinPath)/dotnet.dll $(ILCFLAGS)"/>
+    <Message Text="          bin/managed.o" Importance="High"/>
+    <Exec Command="nasm %(Assemble.Identity) -o bin/$([System.IO.Path]::GetFileName('%(Assemble.Identity)')).o $(ASMFLAGS)"/>
+    <Message Text="          bin/$([System.IO.Path]::GetFileName('%(Assemble.Identity)')).o" Importance="High"/>
+    <Exec Command="ld bin/*.o -ldotnet -o bin/kernel.bin $(LDFLAGS)"/>
+    <Message Text="          bin/kernel.bin" Importance="High"/>
+  </Target>
+
+  <Target Name="CreateDrive" Condition="$([System.IO.File]::Exists('bin/drive.bin')) != 'true'">
+    <Exec Command="dd if=/dev/zero of=bin/drive.bin bs=1M count=500"/>
+  </Target>
+
+  <Target Name="MakeRunFiles" DependsOnTargets="Build" Inputs="grub.cfg;bin/kernel.bin" Outputs="bin/kernel.iso">
+    <Copy SourceFiles="grub.cfg" DestinationFolder="iso/boot/grub"/>
+    <Copy SourceFiles="bin/kernel.bin" DestinationFolder="iso/boot"/>
+
+    <Exec Command="grub-mkrescue iso -o bin/kernel.iso"/>
+  </Target>
+
+  <Target Name="Run" DependsOnTargets="MakeRunFiles;CreateDrive">
+    <PropertyGroup>
+      <ExtraArguments Condition="$(Configuration) == 'Release'">-enable-kvm -cpu host</ExtraArguments>
+      <ExtraArguments Condition="$(Configuration) == 'Debug'">-s -S</ExtraArguments>
+    </PropertyGroup>
+
+    <Exec Command="qemu-system-x86_64 -nodefaults -machine q35 -audio driver=pipewire,model=hda -vga cirrus -display gtk -m 4G -drive id=kernel,format=file,file=bin/kernel.iso -drive id=drive,format=file,file=bin/drive.bin -device usb-ehci -device igb -device hda-micro,audiodev=audiodev0 -device usb-kbd -device usb-mouse -device ich9-ahci -d int -no-reboot -no-shutdown -serial stdio $(ExtraArguments)"/>
+  </Target>
+
+  <Target Name="Dump">
+    <Exec Command="objdump -DM intel bin/kernel.bin"/>
+  </Target>
+
+  <Target Name="Clean">
+    <RemoveDir Directories="bin;iso"/>
+  </Target>
+
+  <Target Name="MakeDirectories">
+    <MakeDir Directories="bin"/>
+    <MakeDir Directories="iso/boot/grub"/>
+  </Target>
+
+  <ItemGroup>
+    <Compile Include="FileTypes/**/*.cs" Exclude="FileTypes/ELF/Debug/*.cs"/>
+    <Compile Include="Boot/**/*.cs"/>
+    <Compile Include="Kernel/**/*.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Assemble Include="FileTypes/*.asm"/>
+    <Assemble Include="Boot/**/*.asm"/>
+    <Assemble Include="Kernel/**/*.asm"/>
+  </ItemGroup>
+
+</Project>
