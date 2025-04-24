@@ -22,8 +22,8 @@ public static class DefaultInterruptHandlers
 	{
 		Console.WriteLine("Exception '#PF Page Fault' occured.");
 		Console.WriteLine(registers);
-		ExceptionHandling.Panic(
-			RuntimeExceptionHelpers.GetStringForFailFastReason(RhFailFastReason.UnhandledException),
+		Environment.FailFast(
+			"Unhandled exception.",
 			(error == 0) ? new NullReferenceException() : new StackOverflowException()
 		);
 	}

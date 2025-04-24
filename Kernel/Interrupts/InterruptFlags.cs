@@ -1,5 +1,6 @@
 namespace Kernel.Interrupts;
 
+[System.Flags]
 public enum InterruptFlags : byte
 {
 	Interrupt = 0b_0000_1110,
