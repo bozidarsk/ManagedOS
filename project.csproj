@@ -1,11 +1,7 @@
 <Project DefaultTargets="Build" InitialTargets="MakeDirectories">
 
   <Import Project="dotnet-native/Directory.Build.props"/>
-
-  <PropertyGroup>
-    <RunCommand>dotnet</RunCommand>
-    <RunArguments>msbuild -t:Run</RunArguments>
-  </PropertyGroup>
+  <Import Project="dotnet-native/Directory.Build.targets"/>
 
   <Target Name="Build" Inputs="@(Compile);@(Assemble);$(DotnetNativeBinPath)/dotnet.dll;$(DotnetNativeBinPath)/libdotnet.a" Outputs="bin/kernel.bin">
     <MSBuild Projects="dotnet-native/dotnet-native.csproj"/>
