@@ -49,9 +49,11 @@ SECTIONS
 	{
 		*(.data)
 		*(__unbox)
-		*(__modules)
 		*(.dotnet_eh_table)
 		*(.eh_frame)
+
+		PROVIDE(MODULES = .);
+		*(__modules)
 	} :data
 
 	.bss : 

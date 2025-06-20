@@ -4,6 +4,8 @@ global stop
 
 extern kmain
 extern KERNELEND
+extern MODULES
+extern InitializeModules
 
 section .text
 
@@ -37,7 +39,21 @@ _start64:
 	or rax, 1 << 10
 	mov cr4, rax
 
+	; save bootinfo and align stack
+	push rdi
+	sub rsp, 8
+
+	xor rdi, rdi
+	mov rsi, MODULES
+	mov rdx, 2
+	xor rcx, rcx
+	xor r8, r8
 	xor rbp, rbp
+	call InitializeModules
+
+	xor rbp, rbp
+	add rsp, 8
+	pop rdi
 	call kmain
 
 	; hlt breaks interrupts
