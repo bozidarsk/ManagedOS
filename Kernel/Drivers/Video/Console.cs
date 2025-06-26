@@ -27,7 +27,7 @@ public static unsafe class Console
 	private static int y = 0;
 
 	public static nint Framebuffer { set; get; } // physical address of video memory
-	public static VideoMode VideoMode { set; get; } // vesa gop vga intel nvidia ...
+	public static VideoMode VideoMode { set; get; } = VideoMode.Serial; // vesa gop vga intel nvidia ...
 	public static ColorMode ColorMode { set; get; }
 
 	public static int Width { set; get; } // width in chars not pixels
@@ -208,6 +208,9 @@ public static unsafe class Console
 					x = 0;
 					break;
 				case '\n':
+					if (VideoMode == VideoMode.Serial)
+						put(chars[i], color);
+
 					x = 0;
 					y++;
 					break;
